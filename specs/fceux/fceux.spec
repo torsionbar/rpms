@@ -1,6 +1,6 @@
 Name: fceux
 Version: 2.1.5
-Release: 1
+Release: 1%{?dist}
 
 Summary: FCEUX is a Nintendo Entertainment System (NES), Famicom, and Famicom Disk System (FDS) emulator
 
