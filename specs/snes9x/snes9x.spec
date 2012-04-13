@@ -1,29 +1,24 @@
-# $Id$
-# Authority: matthias
-
-%{?fedora: %{expand: %%define fc%{fedora} 1}}
-
-%{?el4:%define _without_modxorg 1}
-%{?el3:%define _without_modxorg 1}
-
-#define prever -WIP1
-%define real_version 1.51
-
-Summary: Portable, freeware Super Nintendo Entertainment System (TM) emulator
+Summary: Super Nintendo Entertainment System emulator
 Name: snes9x
-Version: 1.51
-Release: 1%{?dist}
+Version: 1.52
+Release: 2%{?dist}
 License: Other
 Group: Applications/Emulators
-URL: http://www.snes9x.com/
-Source: http://files.ipherswipsite.com/snes9x/snes9x-%{real_version}%{?prever}-src.tar.bz2
-Patch0: snes9x-1.43-wmclass.patch
+URL: http://code.google.com/p/snes9x-gtk/
+Source: http://snes9x-gtk.googlecode.com/files/snes9x-%{version}-src.tar.bz2
+# http://download.sessionclan.de/overfiend/snes9x/snes9x-1.52-src.fix4.diffs.zip
+Patch0: snes9x-1.52-core.fix4.diff
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildRequires: gcc-c++, zlib-devel, libpng-devel
-BuildRequires: libGL-devel, libGLU-devel
-%{!?_without_modxorg:BuildRequires: libXt-devel, libXext-devel, libXxf86dga-devel, libXxf86vm-devel}
-%{?_without_modxorg:BuildRequires: XFree86-devel}
+BuildRequires: gcc-c++
+BuildRequires: zlib-devel, libpng-devel
+BuildRequires: libXv-devel, libXrandr-devel
 BuildRequires: nasm
+BuildRequires: intltool
+BuildRequires: gtk2-devel, libglade2-devel
+BuildRequires: SDL-devel
+BuildRequires: portaudio-devel
+BuildRequires: alsa-lib-devel
+BuildRequires: pulseaudio-libs-devel
 
 %description
 Snes9x is a portable, freeware Super Nintendo Entertainment System (SNES)
@@ -32,44 +27,85 @@ and Super Famicom Nintendo game systems on your computer.
 
 
 %prep
-%setup -n %{name}-%{real_version}%{?prever:-dev}-src
-%patch0 -p2 -b .wmclass
+%setup -q -n %{name}-%{version}-src
+%patch0 -p0 -b .fixes
 
 
 %build
-# First, build the OpenGL version
-%configure --with-netplay --with-opengl
-# Replace OPTIMISE here, it's the best I've found...
-%{__perl} -pi.orig -e 's|^OPTIMISE.*|OPTIMISE = %{optflags}|g' Makefile
+# Workaround for all of the missing links (as of 1.52)
+export CFLAGS="%{optflags} -lX11 -ldl -lXext"
+export CXXFLAGS="%{optflags} -lX11 -ldl -lXext"
+# First, build the GTK version
+cd gtk
+%configure \
+    --without-oss \
+    --with-netplay
 %{__make} %{?_smp_mflags}
-
-%{__make} clean
-
-# Second, build the normal X11 version
-%configure --with-netplay
-# Replace OPTIMISE here, it's the best I've found...
-%{__perl} -pi.orig -e 's|^OPTIMISE.*|OPTIMISE = %{optflags}|g' Makefile
+cd ..
+# Second, build the CLI version
+cd unix
+%configure \
+    --enable-netplay
 %{__make} %{?_smp_mflags}
+cd ..
 
 
 %install
 %{__rm} -rf %{buildroot}
-%{__install} -D -m 0755 osnes9x %{buildroot}%{_bindir}/osnes9x
-%{__install} -D -m 0755 snes9x %{buildroot}%{_bindir}/snes9x
+cd gtk
+%{__make} install DESTDIR=%{buildroot}
+cd ..
+%find_lang snes9x-gtk
+%{__install} -p -m 0755 unix/snes9x %{buildroot}%{_bindir}/snes9x
 
 
 %clean
 %{__rm} -rf %{buildroot}
 
 
-%files
+%post
+touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+update-desktop-database &> /dev/null || :
+
+%postun
+if [ $1 -eq 0 ] ; then
+    touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+fi
+update-desktop-database &> /dev/null || :
+
+%posttrans
+gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+
+
+%files -f snes9x-gtk.lang
 %defattr(-,root,root,-)
-%doc doc/* unix/docs/readme_unix.txt
-%{_bindir}/osnes9x
+%doc gtk/doc/* unix/docs/readme_unix.html
 %{_bindir}/snes9x
+%{_bindir}/snes9x-gtk
+%{_datadir}/applications/snes9x.desktop
+%{_datadir}/icons/hicolor/*/apps/snes9x.*
 
 
 %changelog
+* Thu Oct 14 2010 Matthias Saou <http://freshrpms.net/> 1.52-2
+- Add missing scriplets now that there are icons and a MimeType.
+
+* Wed Aug 11 2010 Matthias Saou <http://freshrpms.net/> 1.52-1
+- Update to 1.52, which is now hosted at google (sort of a unique fork).
+- Now include the new gtk version, it also supports OpenGL.
+
+* Wed May  6 2009 Matthias Saou <http://freshrpms.net/> 1.51-4
+- Include patch to fix the current compilation errors.
+- Quiet setup.
+
+* Sun Mar 29 2009 Thorsten Leemhuis <fedora [AT] leemhuis [DOT] info> - 1.51-3
+- rebuild for new F11 features
+
+* Sat Oct 18 2008 Thorsten Leemhuis <fedora [AT] leemhuis [DOT] info - 1.51-2
+- rebuild for RPM Fusion
+- always build for xorg
+
 * Sat Aug 11 2007 Matthias Saou <http://freshrpms.net/> 1.51-1
 - Update to 1.51.
 - Bundle a second binary, osnes9x, the OpenGL version.
