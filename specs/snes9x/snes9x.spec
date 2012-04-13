@@ -4,8 +4,8 @@ Version: 1.52
 Release: 2%{?dist}
 License: Other
 Group: Applications/Emulators
-URL: http://code.google.com/p/snes9x-gtk/
-Source: http://snes9x-gtk.googlecode.com/files/snes9x-%{version}-src.tar.bz2
+URL: http://www.snes9x.com/
+Source: http://files.ipherswipsite.com/snes9x/snes9x-%{version}-src.tar.bz2
 # http://download.sessionclan.de/overfiend/snes9x/snes9x-1.52-src.fix4.diffs.zip
 Patch0: snes9x-1.52-core.fix4.diff
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
